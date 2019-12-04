@@ -11,20 +11,20 @@ import (
 type KeyExtractor func(*http.Request) (Key, error)
 
 type Middleware struct {
-	K                   Keeper
+	Backend             Keeper
 	Extract             KeyExtractor
 	ErrorHandler        func(error) http.Handler
 	LimitReachedHandler func(Stats) http.Handler
 	KeeperHeaderPrefix  string
 }
 
-func (m *Middleware) Handler(next http.Handler) http.Handler {
+func (m *Middleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key, err := m.Extract(r)
 		if err != nil {
 			m.ErrorHandler(err).ServeHTTP(w, r)
 		}
-		allowed, stats, err := m.K.Allow(r.Context(), key)
+		allowed, stats, err := m.Backend.Allow(r.Context(), key)
 		if err != nil {
 			m.ErrorHandler(err).ServeHTTP(w, r)
 		}
@@ -51,7 +51,7 @@ var (
 // * header prefix is X-API-
 func FromKeeper(k Keeper) *Middleware {
 	return &Middleware{
-		K: k,
+		Backend: k,
 		Extract: KeyExtractor(func(r *http.Request) (Key, error) {
 			rawvalue := r.Header.Get("APIKEY")
 			if rawvalue == "" {
