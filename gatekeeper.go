@@ -1,5 +1,9 @@
 package gatekeeper
 
+import (
+	"context"
+)
+
 // Unique identifier for an API client.
 type Key string
 
@@ -14,11 +18,8 @@ type Stats struct {
 // Main interface to interact with a keeper.
 type Keeper interface {
 	// Check if the key is allowed to make a call
-	Allow(Key) (bool, Stats, error)
+	Allow(context.Context, Key) (bool, Stats, error)
 
 	// Return stats for this key
-	Stats(Key) (Stats, error)
-
-	// Mark the key as used once
-	Mark(Key) error
+	Stats(context.Context, Key) (Stats, error)
 }

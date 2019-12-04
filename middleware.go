@@ -24,7 +24,7 @@ func (m *Middleware) Handler(next http.Handler) http.Handler {
 		if err != nil {
 			m.ErrorHandler(err).ServeHTTP(w, r)
 		}
-		allowed, stats, err := m.K.Allow(key)
+		allowed, stats, err := m.K.Allow(r.Context(), key)
 		if err != nil {
 			m.ErrorHandler(err).ServeHTTP(w, r)
 		}
