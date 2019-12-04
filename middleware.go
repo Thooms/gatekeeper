@@ -1,6 +1,7 @@
 package gatekeeper
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -36,7 +37,7 @@ func (m *Middleware) Wrap(next http.Handler) http.Handler {
 		w.Header().Add(fmt.Sprintf("%s-Limit", m.KeeperHeaderPrefix), strconv.FormatInt(stats.Limit, 10))
 		w.Header().Add(fmt.Sprintf("%s-Remaining", m.KeeperHeaderPrefix), strconv.FormatInt(stats.Remaining, 10))
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, enrichRequest(r, stats))
 	})
 }
 
@@ -75,5 +76,24 @@ func FromKeeper(k Keeper) *Middleware {
 			})
 		},
 		KeeperHeaderPrefix: "X-API-",
+	}
+}
+
+// used to include data in requests
+type ctxKey int
+
+const (
+	statsKey ctxKey = 1
+)
+
+func enrichRequest(r *http.Request, stats Stats) *http.Request {
+	return r.WithContext(context.WithValue(r.Context(), statsKey, stats))
+}
+
+func GetStats(r *http.Request) (Stats, error) {
+	if s, ok := r.Context().Value(statsKey).(Stats); !ok {
+		return Stats{}, errors.New("not stats in this context")
+	} else {
+		return s, nil
 	}
 }
