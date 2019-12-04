@@ -3,7 +3,7 @@ package sql_test
 import (
 	"context"
 	g "github.com/Thooms/gatekeeper"
-	"github.com/Thooms/gatekeeper/pkg/sql"
+	"github.com/Thooms/gatekeeper/backend/sql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
