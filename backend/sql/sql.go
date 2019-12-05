@@ -32,12 +32,12 @@ func (b *SQLBackend) Allow(ctx context.Context, k g.Key) (bool, g.Stats, error) 
 		if rbErr := tx.Rollback(); rbErr != nil {
 			return fmt.Errorf("%v (unable to rollback: %v)", e, rbErr)
 		}
-		return fmt.Errorf("%v (successfully rollbacked)", e)
+		return e
 	}
 	res := &entry{}
 	if err := tx.QueryRowxContext(ctx, b.rebindf(`SELECT * FROM %s WHERE api_key = ? LIMIT 1`, b.tableName), k).StructScan(res); err != nil {
 		if err == sql.ErrNoRows {
-			return false, g.Stats{}, rollbackOnError(fmt.Errorf("unknown API key '%v'", k))
+			return false, g.Stats{}, rollbackOnError(g.ErrUnknownKey)
 		}
 		return false, g.Stats{}, rollbackOnError(fmt.Errorf("unable to get data for API key '%v': %v", k, err))
 	}
@@ -59,6 +59,9 @@ func (b *SQLBackend) Allow(ctx context.Context, k g.Key) (bool, g.Stats, error) 
 func (b *SQLBackend) Stats(ctx context.Context, k g.Key) (g.Stats, error) {
 	res := &entry{}
 	if err := b.db.QueryRowxContext(ctx, b.rebindf(`SELECT * FROM %s WHERE api_key = ? LIMIT 1`, b.tableName), k).StructScan(res); err != nil {
+		if err == sql.ErrNoRows {
+			return g.Stats{}, g.ErrUnknownKey
+		}
 		return g.Stats{}, fmt.Errorf("unable to get data for API key '%v': %v", k, err)
 	}
 	return g.Stats{Remaining: res.Limit - res.Usage, Limit: res.Limit}, nil

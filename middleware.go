@@ -24,14 +24,17 @@ func (m *Middleware) Wrap(next http.Handler) http.Handler {
 		key, err := m.Extract(r)
 		if err != nil {
 			m.ErrorHandler(err).ServeHTTP(w, r)
+			return
 		}
 		allowed, stats, err := m.Backend.Allow(r.Context(), key)
 		if err != nil {
 			m.ErrorHandler(err).ServeHTTP(w, r)
+			return
 		}
 
 		if !allowed {
 			m.LimitReachedHandler(stats).ServeHTTP(w, r)
+			return
 		}
 
 		w.Header().Add(fmt.Sprintf("%s-Limit", m.KeeperHeaderPrefix), strconv.FormatInt(stats.Limit, 10))
@@ -66,6 +69,8 @@ func FromKeeper(k Keeper) *Middleware {
 				if e == ErrKeyNotFound {
 					http.Error(w, "missing API key", http.StatusUnauthorized)
 					return
+				} else if e == ErrUnknownKey {
+					http.Error(w, "unknown API key", http.StatusUnauthorized)
 				}
 				w.WriteHeader(http.StatusInternalServerError)
 			})
@@ -75,7 +80,7 @@ func FromKeeper(k Keeper) *Middleware {
 				http.Error(w, "limit reached", http.StatusTooManyRequests)
 			})
 		},
-		KeeperHeaderPrefix: "X-API-",
+		KeeperHeaderPrefix: "X-API",
 	}
 }
 

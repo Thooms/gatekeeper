@@ -2,6 +2,7 @@ package gatekeeper
 
 import (
 	"context"
+	"errors"
 )
 
 // Unique identifier for an API client.
@@ -15,7 +16,10 @@ type Stats struct {
 	Limit int64
 }
 
+var ErrUnknownKey = errors.New("unknown API key")
+
 // Main interface to interact with a keeper.
+// Whenever the key is not found, a keeper should return ErrUnknownKey
 type Keeper interface {
 	// Check if the key is allowed to make a call
 	Allow(context.Context, Key) (bool, Stats, error)
